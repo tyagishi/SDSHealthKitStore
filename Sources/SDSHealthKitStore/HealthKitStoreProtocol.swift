@@ -15,33 +15,52 @@ public enum HKStoreError: Error {
     case unexpectedNil
 }
 
+/// query result type
+///
+/// HealthKitStore will provide query result via publisher
+/// you can distinct a request result with using id from other request results
+/// you can double check type info
+///
 public struct HKQueryResult<T:HKSample> {
+    /// request id
     public let id: UUID
+    // requested type
     public let type: HKSampleType
+    // request result
     public let results: [T]
 }
 
+/// internal protocol for HealthKitStore
 internal protocol HealthKitStoreProtocolInternal {
     var fetchResult: PassthroughSubject<HKQueryResult<HKSample>,HKStoreError> { get }
-    //var exportResult: PassthroughSubject<String,HKStoreError> { get }
 }
 
-
+/// public protocol for HealthKitStore
 public protocol HealthKitStoreProtocol {
-    // for internal, "fetchResult" should be used instead
+    /// Query result publisher
     var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>,HKStoreError> { get }
-    //var exportPublisher: AnyPublisher<String,HKStoreError> { get }
 
     init()
     
+    /// retrieve authorization status
     func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus
+
+    // request authorization
     func requestAuthorization(toShare typesToShare: Set<HKSampleType>,
                               read typeToRead: Set<HKObjectType>) async throws
 
+    /// request sample query
+    /// - Parameter type: query type
+    /// - Returns: identifier for returned query result
     @discardableResult
     func retrieveSample(type: HKSampleType) -> UUID
 
+    /// save samples
+    ///
+    /// HealthKit does not allow to update already existing element
+    /// if you need to update, remove then create new one
     func saveSamples(_ samples: [HKSample]) async throws
+    /// remove samples
     func deleteSamples(_ samples: [HKSample]) async throws
 }
 
@@ -50,6 +69,7 @@ extension OSLog {
     fileprivate static var mockLog = Logger(.disabled)
 }
 
+/// mock for HealthKitStore
 public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInternal {
     public let fetchResult: PassthroughSubject<HKQueryResult<HKSample>,HKStoreError> = PassthroughSubject()
     public var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>, HKStoreError> {

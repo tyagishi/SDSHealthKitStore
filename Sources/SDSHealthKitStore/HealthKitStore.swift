@@ -13,15 +13,15 @@ import HealthKit
 // NSHealthShareUsageDescription    for reading
 // NSHealthUpdateUsageDescription   for saving
 
+/// HealthKitStore(actor)
+///
+/// no sync method to retrieve samples.
+/// need to sink publisher to receive query result
+/// 
 public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInternal {
     internal let fetchResult: PassthroughSubject<HKQueryResult,HKStoreError> = PassthroughSubject()
     public nonisolated var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>, HKStoreError> {
         fetchResult.eraseToAnyPublisher()
-    }
-    
-    internal let exportResult: PassthroughSubject<String, HKStoreError> = PassthroughSubject()
-    public nonisolated var exportPublisher: AnyPublisher<String, HKStoreError> {
-        exportResult.eraseToAnyPublisher()
     }
     
     let healthStore = HKHealthStore()
