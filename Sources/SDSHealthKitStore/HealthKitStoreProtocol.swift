@@ -28,7 +28,7 @@ internal protocol HealthKitStoreProtocolInternal {
 
 
 public protocol HealthKitStoreProtocol {
-    // for internal, "fetchPublisher" should be used instead
+    // for internal, "fetchResult" should be used instead
     var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>,HKStoreError> { get }
     //var exportPublisher: AnyPublisher<String,HKStoreError> { get }
 
