@@ -42,6 +42,8 @@ public protocol HealthKitStoreProtocol {
 
     init()
     
+    var isHealthKit: Bool { get }
+    
     /// retrieve authorization status
     func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus
 
@@ -85,6 +87,8 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public var data: [HKSample] = []
     
     public init(){}
+
+    public var isHealthKit: Bool { false }
 
     public func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus {
         .sharingAuthorized

@@ -28,7 +28,9 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     
     public init() {}
 
-    nonisolated static var healthDataAvailable: Bool {
+    nonisolated public var isHealthKit: Bool { true }
+
+    nonisolated static public var healthDataAvailable: Bool {
         HKHealthStore.isHealthDataAvailable()
     }
     
