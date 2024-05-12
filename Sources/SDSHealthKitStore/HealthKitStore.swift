@@ -24,9 +24,12 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         fetchResult.eraseToAnyPublisher()
     }
     
-    let healthStore = HKHealthStore()
+    let healthStore: HKHealthStore
     
-    public init() {}
+    public init(_ healthStore: HKHealthStore?) {
+        guard let healthStore = healthStore else { fatalError("invalid argument")}
+        self.healthStore = healthStore
+    }
 
     nonisolated public var isHealthKit: Bool { true }
 

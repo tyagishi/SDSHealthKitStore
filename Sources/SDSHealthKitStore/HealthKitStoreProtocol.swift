@@ -40,7 +40,7 @@ public protocol HealthKitStoreProtocol {
     /// Query result publisher
     var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>,HKStoreError> { get }
 
-    init()
+    init(_ healthStore: HKHealthStore?)
     
     var isHealthKit: Bool { get }
     
@@ -86,7 +86,7 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public var authStatus: HKAuthorizationStatus = .notDetermined
     public var data: [HKSample] = []
     
-    public init(){}
+    public init(_ healthStore: HKHealthStore? = nil) {}
 
     public var isHealthKit: Bool { false }
 
