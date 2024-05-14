@@ -42,7 +42,7 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         self.authStatus = .sharingAuthorized
     }
     
-    public func retrieveSample(type: HKSampleType) -> UUID {
+    public func retrieveSample(type: HKSampleType) async -> UUID {
         OSLog.mockLog.debug("retrieveSample start")
         defer { OSLog.mockLog.debug("retrieveSample end") }
         let id = UUID()

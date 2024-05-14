@@ -55,7 +55,7 @@ public protocol HealthKitStoreProtocol {
     /// - Parameter type: query type
     /// - Returns: identifier for returned query result
     @discardableResult
-    func retrieveSample(type: HKSampleType) -> UUID
+    func retrieveSample(type: HKSampleType) async -> UUID
 
     /// save samples
     ///

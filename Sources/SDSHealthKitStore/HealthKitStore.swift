@@ -46,7 +46,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         healthStore.authorizationStatus(for: type)
     }
     
-    nonisolated public func retrieveSample(type: HKSampleType) -> UUID {
+    public func retrieveSample(type: HKSampleType) async -> UUID {
         let id = UUID()
         let sortDesc = NSSortDescriptor(key: "startDate", ascending: false)
         let query = HKSampleQuery(sampleType: type, predicate: nil,
@@ -66,11 +66,11 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         return id
     }
     
-    nonisolated public func saveSamples(_ samples: [HKSample]) async throws {
+    public func saveSamples(_ samples: [HKSample]) async throws {
         try await healthStore.save(samples)
     }
     
-    nonisolated public func deleteSamples(_ samples: [HKSample]) async throws {
+    public func deleteSamples(_ samples: [HKSample]) async throws {
         try await healthStore.delete(samples)
     }
 }
