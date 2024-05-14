@@ -29,8 +29,15 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
 
     public var authStatus: HKAuthorizationStatus = .notDetermined
     public var data: [HKSample] = []
+    let saveClosure: (() -> Void)?
     
-    public init(_ healthStore: HKHealthStore? = nil) {}
+    public init(_ healthStore: HKHealthStore? = nil) {
+        self.saveClosure = nil
+    }
+    
+    public init(_ healthStore: HKHealthStore? = nil, saveClosure: (() -> Void)?) {
+        self.saveClosure = saveClosure
+    }
 
     public var isHealthKit: Bool { false }
 
@@ -55,9 +62,11 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     
     public func saveSamples(_ samples: [HKSample]) async throws {
         data.append(contentsOf: samples)
+        saveClosure?()
     }
     
     public func deleteSamples(_ samples: [HKSample]) async throws {
         data.removeAll(where: { samples.contains($0) })
+        saveClosure?()
     }
 }
