@@ -27,15 +27,17 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         exportResult.eraseToAnyPublisher()
     }
 
-    public var authStatus: HKAuthorizationStatus = .notDetermined
     public var data: [HKSample] = []
-    let saveClosure: (() -> Void)?
+    let saveClosure: (([HKSample]) -> Void)?
     
     public init(_ healthStore: HKHealthStore? = nil) {
         self.saveClosure = nil
     }
     
-    public init(_ healthStore: HKHealthStore? = nil, saveClosure: (() -> Void)?) {
+    public init(_ healthStore: HKHealthStore? = nil,
+                loadClosure: (() -> [HKSample]),
+                saveClosure: (([HKSample]) -> Void)?) {
+        self.data = loadClosure()
         self.saveClosure = saveClosure
     }
 
@@ -44,10 +46,9 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus {
         .sharingAuthorized
     }
+
     public func requestAuthorization(toShare typesToShare: Set<HKSampleType>,
-                                     read typeToRead: Set<HKObjectType>) async throws {
-        self.authStatus = .sharingAuthorized
-    }
+                                     read typeToRead: Set<HKObjectType>) async throws { }
     
     public func retrieveSample(type: HKSampleType) async -> UUID {
         OSLog.mockLog.debug("retrieveSample start")
@@ -62,11 +63,11 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     
     public func saveSamples(_ samples: [HKSample]) async throws {
         data.append(contentsOf: samples)
-        saveClosure?()
+        saveClosure?(data)
     }
     
     public func deleteSamples(_ samples: [HKSample]) async throws {
         data.removeAll(where: { samples.contains($0) })
-        saveClosure?()
+        saveClosure?(data)
     }
 }
