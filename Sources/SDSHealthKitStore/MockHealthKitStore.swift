@@ -22,11 +22,6 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         fetchResult.eraseToAnyPublisher()
     }
     
-    internal var exportResult: PassthroughSubject<String, HKStoreError> = PassthroughSubject()
-    public var exportPublisher: AnyPublisher<String, HKStoreError> {
-        exportResult.eraseToAnyPublisher()
-    }
-
     public var data: [HKSample] = []
     let saveClosure: (([HKSample]) -> Void)?
     
