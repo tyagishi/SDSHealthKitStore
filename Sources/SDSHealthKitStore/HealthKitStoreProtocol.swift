@@ -57,11 +57,12 @@ public protocol HealthKitStoreProtocol {
     @discardableResult
     func retrieveSample(type: HKSampleType) async -> UUID
 
-    /// save samples
-    ///
-    /// HealthKit does not allow to update already existing element
-    /// if you need to update, remove then create new one
-    func saveSamples(_ samples: [HKSample]) async throws
+    /// add sample
+    func addSamples(_ samples: [HKSample]) async throws
+
+    /// replace sample
+    func replaceSample(_ oldSample: HKSample, with newSample: HKSample) async throws
+
     /// remove samples
     func deleteSamples(_ samples: [HKSample]) async throws
 }

@@ -66,10 +66,15 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         return id
     }
     
-    public func saveSamples(_ samples: [HKSample]) async throws {
+    public func addSamples(_ samples: [HKSample]) async throws {
         try await healthStore.save(samples)
     }
     
+    public func replaceSample(_ oldSample: HKSample, with newSample: HKSample) async throws {
+        try await deleteSamples([oldSample])
+        try await addSamples([newSample])
+    }
+
     public func deleteSamples(_ samples: [HKSample]) async throws {
         try await healthStore.delete(samples)
     }

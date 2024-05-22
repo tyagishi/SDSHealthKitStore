@@ -56,11 +56,16 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         return id
     }
     
-    public func saveSamples(_ samples: [HKSample]) async throws {
+    public func addSamples(_ samples: [HKSample]) async throws {
         data.append(contentsOf: samples)
         saveClosure?(data)
     }
     
+    public func replaceSample(_ oldSample: HKSample, with newSample: HKSample) async throws {
+        try await deleteSamples([oldSample])
+        try await addSamples([newSample])
+    }
+
     public func deleteSamples(_ samples: [HKSample]) async throws {
         data.removeAll(where: { samples.contains($0) })
         saveClosure?(data)
