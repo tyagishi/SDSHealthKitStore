@@ -13,14 +13,18 @@ final class SDSHealthKitStore_MockTests: XCTestCase {
     let bodyMassType = HKQuantityType.quantityType(forIdentifier: .bodyMass)!
     let bodyFatType = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!
     
+    let sut: MockHealthKitStore = MockHealthKitStore()
+    
+    override func setUp() async throws {
+        try await sut.deleteAll(types: [bodyMassType, bodyFatType])
+    }
+    
     func test_init() async throws {
-        let sut = MockHealthKitStore()
         XCTAssertNotNil(sut)
         XCTAssertEqual(sut.data.count, 0)
     }
     
     func test_add_delete_oneSample() async throws {
-        let sut = MockHealthKitStore()
         let date = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
                                               start: date, end: date)
@@ -38,7 +42,6 @@ final class SDSHealthKitStore_MockTests: XCTestCase {
     }
     
     func test_add_twoMassSample() async throws {
-        let sut = MockHealthKitStore()
         let date1 = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample1 = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
                                               start: date1, end: date1)
@@ -52,7 +55,6 @@ final class SDSHealthKitStore_MockTests: XCTestCase {
     }
     
     func test_add_replaceSample() async throws {
-        let sut = MockHealthKitStore()
         let date1 = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample1 = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
                                               start: date1, end: date1)

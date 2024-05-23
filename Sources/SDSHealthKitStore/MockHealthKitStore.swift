@@ -70,4 +70,9 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         data.removeAll(where: { samples.contains($0) })
         saveClosure?(data)
     }
+
+    public func deleteAll(types: [HKSampleType]) async throws {
+        data.removeAll(where: { types.contains($0.sampleType) })
+        saveClosure?(data)
+    }
 }

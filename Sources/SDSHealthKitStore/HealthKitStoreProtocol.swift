@@ -65,5 +65,8 @@ public protocol HealthKitStoreProtocol {
 
     /// remove samples
     func deleteSamples(_ samples: [HKSample]) async throws
+    
+    /// remove all
+    func deleteAll(types: [HKSampleType]) async throws
 }
 

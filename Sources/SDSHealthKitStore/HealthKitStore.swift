@@ -78,4 +78,15 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     public func deleteSamples(_ samples: [HKSample]) async throws {
         try await healthStore.delete(samples)
     }
+    
+    public func deleteAll(types: [HKSampleType]) async throws {
+        let descs = types.map({ HKQueryDescriptor(sampleType: $0, predicate: nil) })
+        let query = HKSampleQuery(queryDescriptors: descs, limit: Int(HKObjectQueryNoLimit),
+                                  resultsHandler: { (query, samples, error) in
+            if let samples = samples {
+                self.healthStore.delete(samples, withCompletion: { _,_ in })
+            }
+        })
+        healthStore.execute(query)
+    }
 }
