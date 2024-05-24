@@ -40,7 +40,7 @@ public protocol HealthKitStoreProtocol {
     /// Query result publisher
     var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>,HKStoreError> { get }
 
-    init(_ healthStore: HKHealthStore?)
+    init(_ healthStore: HKHealthStore?, observeTypes: Set<HKSampleType>)
     
     var isHealthKit: Bool { get }
     
@@ -51,11 +51,8 @@ public protocol HealthKitStoreProtocol {
     func requestAuthorization(toShare typesToShare: Set<HKSampleType>,
                               read typeToRead: Set<HKObjectType>) async throws
 
-    /// request sample query
-    /// - Parameter type: query type
-    /// - Returns: identifier for returned query result
-    @discardableResult
-    func retrieveSample(type: HKSampleType) async -> UUID
+    /// fetch
+    func fetch(types: Set<HKSampleType>) async
 
     /// add sample
     func addSamples(_ samples: [HKSample]) async throws

@@ -25,10 +25,10 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public var data: [HKSample] = []
     let saveClosure: (([HKSample]) -> Void)?
     
-    public init(_ healthStore: HKHealthStore? = nil) {
+    public init(_ healthStore: HKHealthStore? = nil, observeTypes: Set<HKSampleType> = []) {
         self.saveClosure = nil
     }
-    
+
     public init(_ healthStore: HKHealthStore? = nil,
                 loadClosure: (() -> [HKSample]),
                 saveClosure: (([HKSample]) -> Void)?) {
@@ -45,20 +45,23 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public func requestAuthorization(toShare typesToShare: Set<HKSampleType>,
                                      read typeToRead: Set<HKObjectType>) async throws { }
     
-    public func retrieveSample(type: HKSampleType) async -> UUID {
-        OSLog.mockLog.debug("retrieveSample start")
-        defer { OSLog.mockLog.debug("retrieveSample end") }
-        let id = UUID()
-        let sendData = data.filter({ $0.sampleType == type }).sorted(by: { $0.startDate > $1.startDate })
-        fetchResult.send(HKQueryResult(id: id,
-                                       type: type,
-                                       results: sendData))
-        return id
+    public func fetch(types: Set<HKSampleType>) async {
+        for type in types {
+            fetchResult.send(HKQueryResult(id: UUID(),
+                                           type: type,
+                                           results: data.filter({ $0.sampleType == type })))
+        }
     }
-    
+
     public func addSamples(_ samples: [HKSample]) async throws {
         data.append(contentsOf: samples)
         saveClosure?(data)
+        var processSamples = samples
+        while let sample = processSamples.first {
+            fetchResult.send(HKQueryResult(id: UUID(), type: sample.sampleType,
+                                           results: data.filter({ $0.sampleType == sample.sampleType })))
+            processSamples = processSamples.filter({ $0.sampleType != sample.sampleType })
+        }
     }
     
     public func replaceSample(_ oldSample: HKSample, with newSample: HKSample) async throws {
@@ -69,10 +72,23 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public func deleteSamples(_ samples: [HKSample]) async throws {
         data.removeAll(where: { samples.contains($0) })
         saveClosure?(data)
+        var processSamples = samples
+        while let sample = processSamples.first {
+            fetchResult.send(HKQueryResult(id: UUID(), type: sample.sampleType,
+                                           results: data.filter({ $0.sampleType == sample.sampleType })))
+            processSamples = processSamples.filter({ $0.sampleType != sample.sampleType })
+        }
     }
 
     public func deleteAll(types: [HKSampleType]) async throws {
         data.removeAll(where: { types.contains($0.sampleType) })
         saveClosure?(data)
+
+        var processTypes = types
+        while let type = processTypes.first {
+            fetchResult.send(HKQueryResult(id: UUID(), type: type,
+                                           results: data.filter({ $0.sampleType == type })))
+            processTypes = processTypes.filter({ $0 != type })
+        }
     }
 }

@@ -8,10 +8,17 @@
 import Foundation
 import Combine
 import HealthKit
+import OSLog
 
 // MARK:
 // NSHealthShareUsageDescription    for reading
 // NSHealthUpdateUsageDescription   for saving
+
+extension OSLog {
+    fileprivate static var log = Logger(subsystem: "com.smalldesksoftware.weightclipneo", category: "HealthKitStore")
+    //fileprivate static var log = Logger(.disabled)
+}
+
 
 /// HealthKitStore(actor)
 ///
@@ -25,10 +32,48 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     }
     
     let healthStore: HKHealthStore
-    
-    public init(_ healthStore: HKHealthStore?) {
+
+    // note: this predicate is constant value, will not make any data races
+    let allSamplePredicate = HKQuery.predicateForSamples(withStart: Date.distantPast, end: Date.distantFuture)
+
+    public init(_ healthStore: HKHealthStore?, observeTypes: Set<HKSampleType> = []) {
         guard let healthStore = healthStore else { fatalError("invalid argument")}
         self.healthStore = healthStore
+        for type in observeTypes {
+            let query = HKObserverQuery(sampleType: type, predicate: nil, updateHandler: { (query, completion, error) in
+                if let error = error { OSLog.log.error("\(error)"); return }
+                Task {
+                    OSLog.log.debug("observerQuery called")
+                    let samples = await self.querySamples(type)
+                    self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: samples))
+                }
+            })
+            healthStore.execute(query)
+        }
+    }
+
+    public func fetch(types: Set<HKSampleType>) async {
+        for type in types {
+            let samples = await self.querySamples(type)
+            self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: samples))
+        }
+    }
+
+    func querySamples(_ type: HKSampleType) async -> [HKSample] {
+        return await withCheckedContinuation { continuation in
+            let typeDescriptor = HKQueryDescriptor(sampleType: type, predicate: nil)
+            let query = HKSampleQuery(queryDescriptors: [typeDescriptor], limit: Int(HKObjectQueryNoLimit)) { (query, samples, error) in
+                if let error = error {
+                    print("\(error.localizedDescription)")
+                    continuation.resume(returning: [])
+                } else if let samples = samples {
+                    continuation.resume(returning: samples)
+                } else {
+                    continuation.resume(returning: [])
+                }
+            }
+            self.healthStore.execute(query)
+        }
     }
 
     nonisolated public var isHealthKit: Bool { true }
@@ -46,26 +91,6 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         healthStore.authorizationStatus(for: type)
     }
     
-    public func retrieveSample(type: HKSampleType) async -> UUID {
-        let id = UUID()
-        let sortDesc = NSSortDescriptor(key: "startDate", ascending: false)
-        let query = HKSampleQuery(sampleType: type, predicate: nil,
-                                  limit: Int(HKObjectQueryNoLimit),
-                                  sortDescriptors: [sortDesc]) { (query, samples, error) in
-            if let error = error {
-                self.fetchResult.send(completion: .failure(.errorInQuery(error)))
-            } else {
-                if let samples = samples {
-                    self.fetchResult.send(HKQueryResult(id: id, type: type, results: samples))
-                } else {
-                    self.fetchResult.send(completion: .failure(.unexpectedNil))
-                }
-            }
-        }
-        self.healthStore.execute(query)
-        return id
-    }
-    
     public func addSamples(_ samples: [HKSample]) async throws {
         try await healthStore.save(samples)
     }
@@ -80,13 +105,9 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     }
     
     public func deleteAll(types: [HKSampleType]) async throws {
-        let descs = types.map({ HKQueryDescriptor(sampleType: $0, predicate: nil) })
-        let query = HKSampleQuery(queryDescriptors: descs, limit: Int(HKObjectQueryNoLimit),
-                                  resultsHandler: { (query, samples, error) in
-            if let samples = samples {
-                self.healthStore.delete(samples, withCompletion: { _,_ in })
-            }
-        })
-        healthStore.execute(query)
+        for type in types {
+            try await healthStore.deleteObjects(of: type,
+                                                predicate: allSamplePredicate)
+        }
     }
 }
