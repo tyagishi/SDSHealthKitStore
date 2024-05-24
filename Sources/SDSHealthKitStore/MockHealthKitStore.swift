@@ -22,6 +22,11 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         fetchResult.eraseToAnyPublisher()
     }
     
+    internal nonisolated let updateResult: PassthroughSubject<HKUpdatedSamples, HKStoreError> = PassthroughSubject()
+    public nonisolated var updatePublisher: AnyPublisher<HKUpdatedSamples, HKStoreError> {
+        updateResult.eraseToAnyPublisher()
+    }
+
     public var data: [HKSample] = []
     let saveClosure: (([HKSample]) -> Void)?
     
@@ -60,6 +65,9 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         while let sample = processSamples.first {
             fetchResult.send(HKQueryResult(id: UUID(), type: sample.sampleType,
                                            results: data.filter({ $0.sampleType == sample.sampleType })))
+            updateResult.send(HKUpdatedSamples(type: sample.sampleType,
+                                               addedSamples: data.filter({ $0.sampleType == sample.sampleType}),
+                                               deletedIDs: []))
             processSamples = processSamples.filter({ $0.sampleType != sample.sampleType })
         }
     }
@@ -76,6 +84,9 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         while let sample = processSamples.first {
             fetchResult.send(HKQueryResult(id: UUID(), type: sample.sampleType,
                                            results: data.filter({ $0.sampleType == sample.sampleType })))
+            updateResult.send(HKUpdatedSamples(type: sample.sampleType,
+                                               addedSamples: [],
+                                               deletedIDs: samples.map({ $0.uuid })))
             processSamples = processSamples.filter({ $0.sampleType != sample.sampleType })
         }
     }

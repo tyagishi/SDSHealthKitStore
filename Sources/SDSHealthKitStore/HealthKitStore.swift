@@ -31,28 +31,75 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         fetchResult.eraseToAnyPublisher()
     }
     
+    internal nonisolated let updateResult: PassthroughSubject<HKUpdatedSamples, HKStoreError> = PassthroughSubject()
+    public nonisolated var updatePublisher: AnyPublisher<HKUpdatedSamples, HKStoreError> {
+        updateResult.eraseToAnyPublisher()
+    }
+    var anchor: HKQueryAnchor? = nil
+    
     let healthStore: HKHealthStore
 
     // note: this predicate is constant value, will not make any data races
     let allSamplePredicate = HKQuery.predicateForSamples(withStart: Date.distantPast, end: Date.distantFuture)
-
+    
     public init(_ healthStore: HKHealthStore?, observeTypes: Set<HKSampleType> = []) {
         guard let healthStore = healthStore else { fatalError("invalid argument")}
         self.healthStore = healthStore
+        Task { await startObservation(observeTypes) }
+    }
+    
+    public func startObservation(_ observeTypes: Set<HKSampleType> = []) {
         for type in observeTypes {
-            let query = HKObserverQuery(sampleType: type, predicate: nil, updateHandler: { (query, completion, error) in
-                if let error = error { OSLog.log.error("\(error)"); return }
+            // note: unclear about callback condition for resultHandler/updateHandler
+            let ancQuery = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: anchor, limit: HKObjectQueryNoLimit,
+                                                 resultsHandler: { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
+                guard let addedSamples = samplesOrNil,
+                      let deletedSamples = deletedOrNil else {
+                    if let error = errorOrNil { OSLog.log.error("\(error)"); return }
+                    OSLog.log.error("error in HKAnchoredObjectQuery")
+                    return
+                }
+                self.anchor = newAnchor
                 Task {
-                    OSLog.log.debug("observerQuery called")
-                    let samples = await self.querySamples(type)
-                    self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: samples))
+                    guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
+                    self.updateResult.send(HKUpdatedSamples(type: type,
+                                                            addedSamples: addedSamples,
+                                                            deletedIDs: deletedSamples.map({ $0.uuid })))
+                    OSLog.log.debug("HKAnchoredObjectQuery called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
                 }
             })
-            healthStore.execute(query)
+            ancQuery.updateHandler = { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
+                guard let addedSamples = samplesOrNil,
+                      let deletedSamples = deletedOrNil else {
+                    if let error = errorOrNil { OSLog.log.error("\(error)"); return }
+                    OSLog.log.error("error in HKAnchoredObjectQuery")
+                    return
+                }
+                self.anchor = newAnchor
+                guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
+                Task {
+                    self.updateResult.send(HKUpdatedSamples(type: type,
+                                                            addedSamples: addedSamples, deletedIDs: deletedSamples.map({ $0.uuid })))
+                    OSLog.log.debug("HKAnchoredObjectQuery.update called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
+                }
+            }
+            healthStore.execute(ancQuery)
+            /// Note: will be called when app became foreground too
+            let obsQuery = HKObserverQuery(sampleType: type, predicate: nil, updateHandler: { (query, completion, error) in
+                if let error = error { OSLog.log.error("\(error)"); return }
+                Task {
+                    let samples = await self.querySamples(type)
+                    self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: samples))
+                    OSLog.log.debug("observerQuery called, send \(samples.count) samples")
+                }
+                completion()
+            })
+            healthStore.execute(obsQuery)
         }
     }
 
     public func fetch(types: Set<HKSampleType>) async {
+        OSLog.log.debug(#function)
         for type in types {
             let samples = await self.querySamples(type)
             self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: samples))

@@ -15,6 +15,12 @@ public enum HKStoreError: Error {
     case unexpectedNil
 }
 
+public struct HKUpdatedSamples {
+    public let type: HKSampleType
+    public let addedSamples: [HKSample]
+    public let deletedIDs: [UUID]
+}
+
 /// query result type
 ///
 /// HealthKitStore will provide query result via publisher
@@ -33,12 +39,14 @@ public struct HKQueryResult<T:HKSample> {
 /// internal protocol for HealthKitStore
 internal protocol HealthKitStoreProtocolInternal {
     var fetchResult: PassthroughSubject<HKQueryResult<HKSample>,HKStoreError> { get }
+    var updateResult: PassthroughSubject<HKUpdatedSamples, HKStoreError> { get }
 }
 
 /// public protocol for HealthKitStore
 public protocol HealthKitStoreProtocol {
     /// Query result publisher
     var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>,HKStoreError> { get }
+    var updatePublisher: AnyPublisher<HKUpdatedSamples, HKStoreError> { get }
 
     init(_ healthStore: HKHealthStore?, observeTypes: Set<HKSampleType>)
     
