@@ -39,7 +39,8 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
         
         sut.updatePublisher.sink(receiveCompletion: { error in
         }, receiveValue: { update in
-            samples.removeAll(where: { update.deletedIDs.contains($0.uuid) })
+            let ids = update.deletedIDs.map({ $0.uuid })
+            samples.removeAll(where: { ids.contains($0.uuid) })
             samples.append(contentsOf: update.addedSamples)
             expectation1.fulfill()
             expectation2.fulfill()
@@ -72,7 +73,8 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
         
         sut.updatePublisher.sink(receiveCompletion: { error in
         }, receiveValue: { update in
-            samples.removeAll(where: { update.deletedIDs.contains($0.uuid) })
+            let ids = update.deletedIDs.map({ $0.uuid })
+            samples.removeAll(where: { ids.contains($0.uuid) })
             samples.append(contentsOf: update.addedSamples)
             expectation1.fulfill()
         }).store(in: &cancellables)
@@ -102,7 +104,8 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
         
         sut.updatePublisher.sink(receiveCompletion: { error in
         }, receiveValue: { update in
-            samples.removeAll(where: { update.deletedIDs.contains($0.uuid) })
+            let ids = update.deletedIDs.map({ $0.uuid })
+            samples.removeAll(where: { ids.contains($0.uuid) })
             samples.append(contentsOf: update.addedSamples)
             expectation1.fulfill()
             expectation2.fulfill()

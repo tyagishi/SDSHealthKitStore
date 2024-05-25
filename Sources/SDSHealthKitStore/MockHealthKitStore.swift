@@ -86,7 +86,7 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
                                            results: data.filter({ $0.sampleType == sample.sampleType })))
             updateResult.send(HKUpdatedSamples(type: sample.sampleType,
                                                addedSamples: [],
-                                               deletedIDs: samples.map({ $0.uuid })))
+                                               deletedIDs: samples.map({ ($0.uuid, nil) })))
             processSamples = processSamples.filter({ $0.sampleType != sample.sampleType })
         }
     }

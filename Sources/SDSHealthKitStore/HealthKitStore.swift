@@ -67,7 +67,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                 guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
                 self.updateResult.send(HKUpdatedSamples(type: type,
                                                         addedSamples: addedSamples,
-                                                        deletedIDs: deletedSamples.map({ $0.uuid })))
+                                                        deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
                 OSLog.log.debug("HKAnchoredObjectQuery(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
             })
             ancQuery.updateHandler = { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
@@ -80,7 +80,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                 self.anchor = newAnchor
                 guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
                 self.updateResult.send(HKUpdatedSamples(type: type,
-                                                        addedSamples: addedSamples, deletedIDs: deletedSamples.map({ $0.uuid })))
+                                                        addedSamples: addedSamples, deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
                 OSLog.log.debug("HKAnchoredObjectQuery.update(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
             }
             queries.append(ancQuery)

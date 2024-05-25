@@ -18,7 +18,7 @@ public enum HKStoreError: Error {
 public struct HKUpdatedSamples {
     public let type: HKSampleType
     public let addedSamples: [HKSample]
-    public let deletedIDs: [UUID]
+    public let deletedIDs: [(uuid: UUID, metadata: [String:Any]?)]
 }
 
 /// query result type
