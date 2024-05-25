@@ -48,7 +48,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     public init(_ healthStore: HKHealthStore?, observeTypes: Set<HKSampleType> = []) {
         guard let healthStore = healthStore else { fatalError("invalid argument")}
         self.healthStore = healthStore
-        //Task { await startObservation(observeTypes) }
+        Task { await startObservation(observeTypes) }
     }
     
     public func startObservation(_ observeTypes: Set<HKSampleType> = []) async {
