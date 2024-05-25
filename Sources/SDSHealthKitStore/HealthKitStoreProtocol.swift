@@ -40,6 +40,9 @@ public struct HKQueryResult<T:HKSample> {
 internal protocol HealthKitStoreProtocolInternal {
     var fetchResult: PassthroughSubject<HKQueryResult<HKSample>,HKStoreError> { get }
     var updateResult: PassthroughSubject<HKUpdatedSamples, HKStoreError> { get }
+
+    // need to be deleted?
+    func startObservation(_ observeTypes: Set<HKSampleType>) async
 }
 
 /// public protocol for HealthKitStore
@@ -59,7 +62,6 @@ public protocol HealthKitStoreProtocol {
     func requestAuthorization(toShare typesToShare: Set<HKSampleType>,
                               read typeToRead: Set<HKObjectType>) async throws
 
-    func startObservation(_ observeTypes: Set<HKSampleType>) async
 
     /// fetch
     func fetch(types: Set<HKSampleType>) async

@@ -34,6 +34,7 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
     public init(_ healthStore: HKHealthStore? = nil, observeTypes: Set<HKSampleType> = []) {
         self.types = observeTypes
         self.saveClosure = nil
+        Task { await startObservation(observeTypes) }
     }
 
     public init(_ healthStore: HKHealthStore? = nil,

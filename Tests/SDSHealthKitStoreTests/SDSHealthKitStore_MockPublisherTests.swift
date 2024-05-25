@@ -46,8 +46,6 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
             expectation2.fulfill()
         }).store(in: &cancellables)
         
-        await sut.startObservation([bodyMassType])
-        
         let date = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
                                               start: date, end: date)
@@ -80,7 +78,6 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
             samples.append(contentsOf: update.addedSamples)
             expectation1.fulfill()
         }).store(in: &cancellables)
-        await sut.startObservation([bodyMassType])
 
         let date1 = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample1 = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
@@ -113,7 +110,6 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
             expectation1.fulfill()
             expectation2.fulfill()
         }).store(in: &cancellables)
-        await sut.startObservation([bodyMassType])
 
         let date1 = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample1 = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
@@ -158,7 +154,6 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
             expectation1.fulfill()
             expectation2.fulfill()
         }).store(in: &cancellables)
-        await sut.startObservation([bodyMassType])
 
         let date = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
@@ -190,7 +185,6 @@ final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
             samples = fetch.results
             expectation1.fulfill()
         }).store(in: &cancellables)
-        await sut.startObservation([bodyMassType])
 
         let date1 = Calendar.current.date(from: DateComponents(year: 2024, month: 5, day: 1, hour: 9, minute: 0, second: 0))!
         let bodyMassSample1 = HKQuantitySample(type: bodyMassType, quantity: HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: 81.2),
