@@ -26,18 +26,21 @@ extension OSLog {
 /// need to sink publisher to receive query result
 /// 
 public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInternal {
-    internal let fetchResult: PassthroughSubject<HKQueryResult,HKStoreError> = PassthroughSubject()
-    public nonisolated var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>, HKStoreError> {
+    nonisolated internal let fetchResult: PassthroughSubject<HKQueryResult,HKStoreError> = PassthroughSubject()
+    nonisolated public var fetchPublisher: AnyPublisher<HKQueryResult<HKSample>, HKStoreError> {
         fetchResult.eraseToAnyPublisher()
     }
     
-    internal nonisolated let updateResult: PassthroughSubject<HKUpdatedSamples, HKStoreError> = PassthroughSubject()
-    public nonisolated var updatePublisher: AnyPublisher<HKUpdatedSamples, HKStoreError> {
+    nonisolated internal let updateResult: PassthroughSubject<HKUpdatedSamples, HKStoreError> = PassthroughSubject()
+    nonisolated public var updatePublisher: AnyPublisher<HKUpdatedSamples, HKStoreError> {
         updateResult.eraseToAnyPublisher()
     }
+    
     var anchor: HKQueryAnchor? = nil
     
     let healthStore: HKHealthStore
+    
+    var queries: [HKQuery] = []
 
     // note: this predicate is constant value, will not make any data races
     let allSamplePredicate = HKQuery.predicateForSamples(withStart: Date.distantPast, end: Date.distantFuture)
@@ -49,6 +52,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     }
     
     public func startObservation(_ observeTypes: Set<HKSampleType> = []) {
+        queries.removeAll()
         for type in observeTypes {
             // note: unclear about callback condition for resultHandler/updateHandler
             let ancQuery = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: anchor, limit: HKObjectQueryNoLimit,
@@ -60,13 +64,11 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                     return
                 }
                 self.anchor = newAnchor
-                Task {
-                    guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
-                    self.updateResult.send(HKUpdatedSamples(type: type,
-                                                            addedSamples: addedSamples,
-                                                            deletedIDs: deletedSamples.map({ $0.uuid })))
-                    OSLog.log.debug("HKAnchoredObjectQuery called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
-                }
+                guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
+                self.updateResult.send(HKUpdatedSamples(type: type,
+                                                        addedSamples: addedSamples,
+                                                        deletedIDs: deletedSamples.map({ $0.uuid })))
+                OSLog.log.debug("HKAnchoredObjectQuery(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
             })
             ancQuery.updateHandler = { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
                 guard let addedSamples = samplesOrNil,
@@ -77,12 +79,11 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                 }
                 self.anchor = newAnchor
                 guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
-                Task {
-                    self.updateResult.send(HKUpdatedSamples(type: type,
-                                                            addedSamples: addedSamples, deletedIDs: deletedSamples.map({ $0.uuid })))
-                    OSLog.log.debug("HKAnchoredObjectQuery.update called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
-                }
+                self.updateResult.send(HKUpdatedSamples(type: type,
+                                                        addedSamples: addedSamples, deletedIDs: deletedSamples.map({ $0.uuid })))
+                OSLog.log.debug("HKAnchoredObjectQuery.update(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
             }
+            queries.append(ancQuery)
             healthStore.execute(ancQuery)
             /// Note: will be called when app became foreground too
             let obsQuery = HKObserverQuery(sampleType: type, predicate: nil, updateHandler: { (query, completion, error) in
@@ -90,10 +91,11 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                 Task {
                     let samples = await self.querySamples(type)
                     self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: samples))
-                    OSLog.log.debug("observerQuery called, send \(samples.count) samples")
+                    OSLog.log.debug("observerQuery(type: \(type)) called, send \(samples.count) samples")
                 }
                 completion()
             })
+            queries.append(obsQuery)
             healthStore.execute(obsQuery)
         }
     }
