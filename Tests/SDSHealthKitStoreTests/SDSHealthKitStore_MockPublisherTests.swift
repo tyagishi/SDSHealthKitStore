@@ -1,5 +1,5 @@
 //
-//  SDSHealthKitStore_MockPublisher.swift
+//  SDSHealthKitStore_MockPublisherTests.swift
 //
 //  Created by : Tomoaki Yagishita on 2024/05/25
 //  © 2024  SmallDeskSoftware
@@ -10,7 +10,7 @@ import Combine
 import HealthKit
 @testable import SDSHealthKitStore
 
-final class SDSHealthKitStore_MockPublisher: XCTestCase {
+final class SDSHealthKitStore_MockPublisherTests: XCTestCase {
     let bodyMassType = HKQuantityType.quantityType(forIdentifier: .bodyMass)!
     let bodyFatType = HKQuantityType.quantityType(forIdentifier: .bodyFatPercentage)!
     
