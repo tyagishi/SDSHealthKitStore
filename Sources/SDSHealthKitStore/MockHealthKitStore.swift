@@ -27,10 +27,12 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         updateResult.eraseToAnyPublisher()
     }
 
+    public var types: Set<HKSampleType> = []
     public var data: [HKSample] = []
     let saveClosure: (([HKSample]) -> Void)?
     
     public init(_ healthStore: HKHealthStore? = nil, observeTypes: Set<HKSampleType> = []) {
+        self.types = observeTypes
         self.saveClosure = nil
     }
 
@@ -41,6 +43,13 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         self.saveClosure = saveClosure
     }
 
+    public func startObservation(_ observeTypes: Set<HKSampleType>) async {
+        for type in types {
+            self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: []))
+            self.updateResult.send(HKUpdatedSamples(type: type, addedSamples: [], deletedIDs: []))
+        }
+    }
+    
     public var isHealthKit: Bool { false }
 
     public func authorizationStatus(for type: HKObjectType) -> HKAuthorizationStatus {

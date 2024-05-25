@@ -59,6 +59,8 @@ public protocol HealthKitStoreProtocol {
     func requestAuthorization(toShare typesToShare: Set<HKSampleType>,
                               read typeToRead: Set<HKObjectType>) async throws
 
+    func startObservation(_ observeTypes: Set<HKSampleType>) async
+
     /// fetch
     func fetch(types: Set<HKSampleType>) async
 
