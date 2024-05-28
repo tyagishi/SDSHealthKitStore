@@ -46,8 +46,8 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
 
     public func startObservation(_ observeTypes: Set<HKSampleType>) async {
         for type in types {
-            self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: []))
-            self.updateResult.send(HKUpdatedSamples(type: type, addedSamples: [], deletedIDs: []))
+            self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: data.filter({ $0.sampleType == type })))
+            self.updateResult.send(HKUpdatedSamples(type: type, addedSamples: data.filter({  $0.sampleType == type }), deletedIDs: []))
         }
     }
     

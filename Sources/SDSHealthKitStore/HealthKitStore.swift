@@ -40,6 +40,8 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     
     let healthStore: HKHealthStore
     
+    var anchors: [HKSampleType: HKQueryAnchor] = [:]
+    
     var queries: [HKQuery] = []
 
     // note: this predicate is constant value, will not make any data races
@@ -53,9 +55,10 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     
     public func startObservation(_ observeTypes: Set<HKSampleType> = []) async {
         queries.removeAll()
+        anchors.removeAll()
         for type in observeTypes {
             // note: unclear about callback condition for resultHandler/updateHandler
-            let ancQuery = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: anchor, limit: HKObjectQueryNoLimit,
+            let ancQuery = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: anchors[type], limit: HKObjectQueryNoLimit,
                                                  resultsHandler: { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
                 guard let addedSamples = samplesOrNil,
                       let deletedSamples = deletedOrNil else {
@@ -63,6 +66,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                     OSLog.log.error("error in HKAnchoredObjectQuery")
                     return
                 }
+                self.anchors[type] = newAnchor
                 self.anchor = newAnchor
                 guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
                 self.updateResult.send(HKUpdatedSamples(type: type,
@@ -77,7 +81,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
                     OSLog.log.error("error in HKAnchoredObjectQuery")
                     return
                 }
-                self.anchor = newAnchor
+                self.anchors[type] = newAnchor
                 guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
                 self.updateResult.send(HKUpdatedSamples(type: type,
                                                         addedSamples: addedSamples, deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
