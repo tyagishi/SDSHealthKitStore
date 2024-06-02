@@ -37,15 +37,17 @@ public final class MockHealthKitStore: HealthKitStoreProtocol, HealthKitStorePro
         Task { await startObservation(observeTypes) }
     }
 
-    public init(_ healthStore: HKHealthStore? = nil,
+    public init(_ healthStore: HKHealthStore? = nil, observeTypes: Set<HKSampleType> = [],
                 loadClosure: (() -> [HKSample]),
                 saveClosure: (([HKSample]) -> Void)?) {
+        self.types = observeTypes
         self.data = loadClosure()
         self.saveClosure = saveClosure
+        Task { await startObservation(observeTypes) }
     }
 
     public func startObservation(_ observeTypes: Set<HKSampleType>) async {
-        for type in types {
+        for type in observeTypes {
             self.fetchResult.send(HKQueryResult(id: UUID(), type: type, results: data.filter({ $0.sampleType == type })))
             self.updateResult.send(HKUpdatedSamples(type: type, addedSamples: data.filter({  $0.sampleType == type }), deletedIDs: []))
         }
