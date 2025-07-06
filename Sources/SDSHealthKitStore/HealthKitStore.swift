@@ -35,13 +35,16 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
     nonisolated public var updatePublisher: AnyPublisher<HKUpdatedSamples, HKStoreError> {
         updateResult.eraseToAnyPublisher()
     }
-    
+
+    @MainActor
     var anchor: HKQueryAnchor? = nil
     
     let healthStore: HKHealthStore
     
+    @MainActor
     var anchors: [HKSampleType: HKQueryAnchor] = [:]
     
+    @MainActor
     var queries: [HKQuery] = []
 
     // note: this predicate is constant value, will not make any data races
@@ -53,6 +56,7 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
         Task { await startObservation(observeTypes) }
     }
     
+    @MainActor
     public func startObservation(_ observeTypes: Set<HKSampleType> = []) async {
         queries.removeAll()
         anchors.removeAll()
@@ -60,32 +64,36 @@ public actor HealthKitStore: HealthKitStoreProtocol, HealthKitStoreProtocolInter
             // note: unclear about callback condition for resultHandler/updateHandler
             let ancQuery = HKAnchoredObjectQuery(type: type, predicate: nil, anchor: anchors[type], limit: HKObjectQueryNoLimit,
                                                  resultsHandler: { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
-                guard let addedSamples = samplesOrNil,
-                      let deletedSamples = deletedOrNil else {
-                    if let error = errorOrNil { OSLog.log.error("\(error)"); return }
-                    OSLog.log.error("error in HKAnchoredObjectQuery")
-                    return
+                Task { @MainActor in
+                    guard let addedSamples = samplesOrNil,
+                          let deletedSamples = deletedOrNil else {
+                        if let error = errorOrNil { OSLog.log.error("\(error)"); return }
+                        OSLog.log.error("error in HKAnchoredObjectQuery")
+                        return
+                    }
+                    self.anchors[type] = newAnchor
+                    self.anchor = newAnchor
+                    guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
+                    self.updateResult.send(HKUpdatedSamples(type: type,
+                                                            addedSamples: addedSamples,
+                                                            deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
+                    OSLog.log.debug("HKAnchoredObjectQuery(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
                 }
-                self.anchors[type] = newAnchor
-                self.anchor = newAnchor
-                guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
-                self.updateResult.send(HKUpdatedSamples(type: type,
-                                                        addedSamples: addedSamples,
-                                                        deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
-                OSLog.log.debug("HKAnchoredObjectQuery(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
             })
             ancQuery.updateHandler = { (query, samplesOrNil, deletedOrNil, newAnchor, errorOrNil) in
-                guard let addedSamples = samplesOrNil,
-                      let deletedSamples = deletedOrNil else {
-                    if let error = errorOrNil { OSLog.log.error("\(error)"); return }
-                    OSLog.log.error("error in HKAnchoredObjectQuery")
-                    return
+                Task { @MainActor in
+                    guard let addedSamples = samplesOrNil,
+                          let deletedSamples = deletedOrNil else {
+                        if let error = errorOrNil { OSLog.log.error("\(error)"); return }
+                        OSLog.log.error("error in HKAnchoredObjectQuery")
+                        return
+                    }
+                    self.anchors[type] = newAnchor
+                    guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
+                    self.updateResult.send(HKUpdatedSamples(type: type,
+                                                            addedSamples: addedSamples, deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
+                    OSLog.log.debug("HKAnchoredObjectQuery.update(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
                 }
-                self.anchors[type] = newAnchor
-                guard !addedSamples.isEmpty || !deletedSamples.isEmpty else { return }
-                self.updateResult.send(HKUpdatedSamples(type: type,
-                                                        addedSamples: addedSamples, deletedIDs: deletedSamples.map({ ($0.uuid, $0.metadata) })))
-                OSLog.log.debug("HKAnchoredObjectQuery.update(type: \(type)) called, send add: \(addedSamples.count), del: \(deletedSamples.count) samples")
             }
             queries.append(ancQuery)
             healthStore.execute(ancQuery)
